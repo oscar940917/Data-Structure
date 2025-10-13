@@ -11,13 +11,13 @@
 #### 1.1.1 解題策略
 
 1. 遞迴:
-     $$
-   A(m, n) = \begin{cases}
-   n+1 & m=0 \\
-   A(m-1, 1) & m>0, n=0 \\
-   A(m-1, A(m, n-1)) & m>0, n>0
-   \end{cases}
-   $$
+    Ackermann function A(m, n) 定義如下：
+
+A(m, n) = 
+- n + 1                 當 m = 0  
+- A(m - 1, 1)           當 m > 0 且 n = 0  
+- A(m - 1, A(m, n - 1)) 當 m > 0 且 n > 0  
+
 
 2. 非遞迴:
      觀察到遞迴函式中Ackermann函式會不斷呼叫自己並且呼叫時僅會在第二個參數位置額外呼叫Ackermann函式，因此我藉此設計一個 Vector(`processing[2]`) 以及一個 `is_constant` 常數標記(用於定義目前是否將 `processing[1]` 視為常數並忽略 `processing[0]` )作為計算 $A(m,n)$ 迭代所用暫存器。
