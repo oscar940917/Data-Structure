@@ -161,29 +161,29 @@ int main() {
 
 1. 空間複雜度：
 
-使用 vector<pair<int, float>> 存儲多項式，空間複雜度為 O(n)，其中 n 是項數。乘法時可能需要 O(n^2) 空間。
+- 使用 vector<pair<int, float>> 存儲多項式，空間複雜度為 O(n)，其中 n 是項數。乘法時可能需要 O(n^2) 空間。
 
 2. 時間複雜度：
 
-    加法 (Add)：O(m + n)，其中 m 和 n 分別是兩個多項式的項數。
+    - 加法 (Add)：O(m + n)，其中 m 和 n 分別是兩個多項式的項數。
 
-    乘法 (Mult)：O(n^2)，每個項與其他項相乘。
+    - 乘法 (Mult)：O(n^2)，每個項與其他項相乘。
 
-    評估 (Eval)：O(n)，遍歷每個項計算結果。
+    - 評估 (Eval)：O(n)，遍歷每個項計算結果。
 
 3. 堆疊深度：
 
-    遞迴深度可能影響堆疊，尤其是處理大量項時。
+    - 遞迴深度可能影響堆疊，尤其是處理大量項時。
 
 4. 優化：
 
-    使用哈希表可將加法和乘法的查找時間降低到 O(n)。
+    - 使用哈希表可將加法和乘法的查找時間降低到 O(n)。
 
 5. 總結：
 
-    空間：O(n)，最壞為 O(n^2)。
+    - 空間：O(n)，最壞為 O(n^2)。
 
-    時間：加法 O(m + n)，乘法 O(n^2)，評估 O(n)
+    - 時間：加法 O(m + n)，乘法 O(n^2)，評估 O(n)
 ### 1.4 測試與驗證
 我們將針對不同情境下進行測試，確保多項式操作的正確性與穩定性。
 
@@ -274,129 +274,168 @@ cout << "加法運行時間: " << duration.count() << " 微秒" << endl;
 
 ### 2.1 解題說明
 
-本題要求透過遞迴方式實現冪集合的方法，能夠根據指定集合產生另一個集合，且產生的集合為原集合之冪集合。
+本程式設計用來輸入和輸出多項式，並以物件導向方式管理每一個多項式項。
 
-冪集合，包含了原集合中所有可能的子集合。
+    每個多項式項用 Term 類別表示，包含係數(coef)與指數(exp)。
+
+    多項式本身用 Polynomial 類別表示，內含動態陣列 termArray 存放所有非零項，以及 terms 與 capacity 管理數量與容量。
+
+    運算子 >> 和 << 被重載，分別用來輸入和輸出多項式，輸出時自動處理符號和係數格式，使結果符合一般數學表達式。
 
 #### 2.1.1 解題策略
 
-透過觀察可以發現，冪集合與原集合有密切的關聯性：
-- 最小的子集合為空集合[∅]
-- 最大的子集合為原集合本身
+物件導向設計
+- 用 Term 封裝單項資料，Polynomial 管理多項式，清楚分工。
+- Term 成員為私有，透過友元函式或 Polynomial 類別存取，避免外部直接操作。
 
-若將每個子集合視為原集合中每個元素的「存在與否」組合，就可以與二進位表示對應：
-- 假設原集合有 4 個元素，索引分別為 0~3
-- 「1111₂」表示所有元素存在（即原集合本身）
-- 「0000₂」表示所有元素不存在（空集合）
+動態陣列管理
+- 假多項式項數不固定，使用 Term* 動態陣列儲存。
+- 若輸入項數大於初始容量，程式自動重新分配陣列。
 
-因此，只要將二進位數值從 0 遞增到 $2^n−1$，即可系統性地生成所有子集合。
+友元函式操作私有成員
+- operator>> 和 operator<< 作為 Polynomial 友元，能存取 Term 的私有成員而不違反封裝。
 
+輸出格式處理
+- 第一項符號特殊處理，後續項目加 + 或 -。
+- 係數 1/-1 與指數 0/1 的特例處理，使輸出符合標準多項式表示。
 ### 2.2 程式實作
 
 ```cpp
-#include <algorithm>
-#include <cmath>
-#include <cstdio>
-#include <cstring>
-#include <cstdlib>
-#include <fstream>
 #include <iostream>
-#include <random>
-#include <sstream>
-#include <string>
 using namespace std;
-template<typename T>
-class MyVector {
-    private:
-        T* data;          // 指向儲存資料的動態陣列
-        size_t sz;        // 元素個數
-        size_t capacity;  // 容量大小（目前可存放元素數）
 
-        // 私有函式：擴充容量，並把舊資料搬移過去
-        void resize(size_t new_capacity) {
-            T* new_data = new T[new_capacity];      // 配置新陣列
-            for (size_t i = 0; i < sz; ++i)        // 拷貝舊元素
-                new_data[i] = data[i];
-            delete[] data;                          // 釋放舊陣列
-            data = new_data;
-            capacity = new_capacity;
-        }
+class Polynomial;  // forward declaration
 
-    public:
-        // 建構子，初始無資料
-        MyVector() : data(nullptr), sz(0), capacity(0) {}
-
-        // 解構子，釋放動態記憶體
-        ~MyVector() {
-            delete[] data;
-        }
-
-        // 回傳目前元素數量
-        size_t size() const {
-            return sz;
-        }
-
-        // 尾端新增元素
-        void push_back(const T& value) {
-            if (sz == capacity) {                   // 容量不足時擴容
-                size_t new_capacity = capacity == 0 ? 1 : capacity * 2;
-                resize(new_capacity);
-            }
-            data[sz++] = value;                     // 新增元素並更新大小
-        }
-
-        // 取得指定位置元素，不做邊界檢查
-        T& operator[](size_t index) {
-            return data[index];
-        }
-
-        // 移除最後一個元素
-        void pop_back() {
-            if (sz > 0)
-                --sz;
-        }
+class Term {
+    friend class Polynomial;                       // Polynomial 是友元
+    friend ostream& operator<<(ostream&, const Polynomial&); // operator<< 是友元
+private:
+    float coef;
+    int exp;
+public:
+    Term() : coef(0), exp(0) {}
+    Term(float c, int e) : coef(c), exp(e) {}
 };
-int main(){
-    int x;
-    string IN,word;
-    MyVector<string> D;
-    getline(cin,IN);
-    stringstream ss(IN);
-    while(ss>>word)
-        D.push_back(word);
-    x=D.size();
-    int C=pow(2,x);
-    bool d[C][x];
-    for(int i=0;i<C;i++){
-        int r=i;
-        for(int j=0;j<x;j++){
-            d[i][x-j-1]=r%2;
-            r/=2;
-        }
+
+class Polynomial {
+private:
+    Term *termArray;
+    int capacity;
+    int terms;
+
+public:
+    Polynomial(int cap = 10) : capacity(cap), terms(0) {
+        termArray = new Term[capacity];
     }
-    cout<<"\n[∅]\n";
-    for(int i=1;i<C;i++){
-        bool f=0;
-        cout<<"[";
-        for(int j=0;j<x;j++){
-            if(d[i][j]){
-                if(f>0)
-                    cout<<",";
-                f=1;
-                cout<<D[j];
+
+    ~Polynomial() {
+        delete[] termArray;
+    }
+
+    // 輸入運算子 >>
+    friend istream& operator>>(istream& in, Polynomial& p) {
+        int n;
+        cout << "請輸入多項式的項數: ";
+        in >> n;
+
+        if (n > p.capacity) {  // 若項數大於容量，重新配置
+            delete[] p.termArray;
+            p.capacity = n;
+            p.termArray = new Term[p.capacity];
+        }
+
+        p.terms = n;
+        for (int i = 0; i < n; ++i) {
+            float coef;
+            int exp;
+            cout << "請輸入第 " << i + 1 << " 項 (係數 指數): ";
+            in >> coef >> exp;
+            p.termArray[i] = Term(coef, exp);
+        }
+        return in;
+    }
+
+    // 輸出運算子 <<
+    friend ostream& operator<<(ostream& out, const Polynomial& p) {
+        if (p.terms == 0) {
+            out << "0";
+            return out;
+        }
+
+        bool first = true;
+        for (int i = 0; i < p.terms; ++i) {
+            float coef = p.termArray[i].coef;
+            int exp = p.termArray[i].exp;
+
+            if (coef == 0) continue;
+
+            // 處理符號
+            if (first) {
+                if (coef < 0) out << "-";
+                first = false;
+            } else {
+                if (coef > 0) out << " + ";
+                else out << " - ";
+            }
+
+            float absCoef = (coef < 0) ? -coef : coef;
+
+            // 決定係數輸出
+            if (absCoef != 1 || exp == 0) out << absCoef;
+
+            // 指數輸出
+            if (exp > 0) {
+                if (absCoef != 1) out << "x";
+                else out << "x";
+                if (exp > 1) out << "^" << exp;
             }
         }
-        cout<<"]\n";
+        return out;
     }
+};
+
+int main() {
+    Polynomial p;
+    cin >> p;
+    cout << "輸入的多項式是: " << p << endl;
     return 0;
 }
+
 ```
 
 ### 2.3 效能分析
 
-時間複雜度: $O(x·2^x)$
+1. 空間複雜度
 
-空間複雜度: $O(x·2^x)$
+- 使用動態陣列 Term* termArray 存儲多項式，空間複雜度為 O(n)，其中 n 為多項式項數。
+
+- 建構多項式時初始容量為 O(capacity)，若輸入項數大於容量則需要重新分配陣列，暫時增加額外空間。
+
+2. 時間複雜度
+
+- 輸入多項式 (operator>>)：O(n)，逐項讀取係數與指數。
+
+- 輸出多項式 (operator<<)：O(n)，遍歷所有項目並格式化輸出。
+
+- 建構多項式 (Polynomial 建構子)：O(capacity)，初始化動態陣列。
+
+- 釋放多項式 (~Polynomial)：O(1)，釋放動態陣列指標。
+
+3. 堆疊深度
+
+- 本程式無遞迴操作，堆疊使用固定，對大量項數影響不大。
+
+- 優化建議
+
+- 若需要加法或乘法操作，可考慮使用哈希表或有序結構來減少查找時間。
+
+- 對大量多項式項，使用 std::vector<Term> 可自動管理容量，避免手動動態分配。
+
+4. 總結
+
+- 空間複雜度：O(n)，最壞情況為重新分配暫時增加額外空間。
+
+- 時間複雜度：輸入 O(n)、輸出 O(n)、建構 O(capacity)、釋放 O(1)。
 
 ### 2.4 測試與驗證
 
