@@ -2,47 +2,37 @@
 
 作業二
 # Problem : Polynomial
+## 一、題目說明
 
-## 解題說明
+這次作業要我們設計一個能夠做多項式運算的程式，
+包含三個主要功能：
 
-1. 資料結構設計：
-    - 建立 Term 類別（包含係數與指數），並在 Polynomial 類別中用陣列儲存多項式的所有項。
+加法（Add）
 
-2. 輸入與輸出：
-    - 使用運算子多載 >>、<<，方便以數學式方式輸入與輸出多項式。
+乘法（Multiply）
 
-3. 加法（Add）：
-    - 透過比較兩個多項式中每一項的指數，將指數相同的項合併，不同的項則直接加入結果。
+代入求值（Evaluate）
 
-4. 乘法（Mult）：
-    - 對第一個多項式的每一項與第二個多項式的每一項相乘，
-    - 若有相同指數則將係數相加，最後形成新的多項式結果。
+多項式是由很多「項」組成的，每一項都有「係數（coefficient）」和「指數（exponent）」。
+像是 3x^2 + 2x + 1，其實就是三個項組成的。
+這題的重點在於，讓我們用「物件導向」的方式把這些項管理起來，
+同時練習 C++ 的類別設計與運算子多載。
 
-5. 代入求值（Eval）：
-    - 將輸入的 x 值代入每一項，計算coef * 𝑥^exp並累加得出結果。
-### 解題想法
+## 二、解題想法
 
-    本題的目標是實作一個能進行多項式基本運算的程式，包括加法、乘法及代入變數求值。
-    因為多項式由多項（係數與指數）組成，因此設計上採用物件導向方式，將每一項定義為 Term 類別，並由 Polynomial 類別統一管理。
-    透過運算子多載，可讓輸入與輸出更自然，像數學式一樣操作；
-    在加法與乘法的部分，利用指數比對來合併或展開項，達成正確的運算結果。
+我一開始是想照課本那種 Term 陣列的做法寫，
+但試著跑的時候常常出現 Process finished with exit code 1，
+後來發現是因為記憶體越界或複製物件時沒做好深拷貝。
 
+所以我乾脆改成用 vector，讓 C++ 自己幫我管理記憶體，
+也比較彈性，不用擔心項數太多。
+整體架構大概分三部分：
 
-### 範例說明
+Term（結構） → 存每一項的係數跟指數
 
-若輸入：
+Polynomial（類別） → 負責所有多項式的操作
 
-    a(x): 3x^2 + 2x^1 + 1
-    b(x): x^1 + 4
-    x=10
-
-則輸出：
-
-    a + b = 3x^2 + 3x^1 + 5
-    a * b = 3x^3 + 14x^2 + 9x^1 + 4
-    a(10) = 321
-    b(10) = 14
-
+main() → 讓使用者輸入 a(x)、b(x)，然後輸出結果
 
 ## 程式實作
 
@@ -50,103 +40,153 @@
 
 ```cpp
 #include <iostream>
+#include <vector>
 #include <cmath>
+#include <algorithm>
 using namespace std;
 
-class Term {
-public:
-    float coef;
+struct Term {
+    double coef;
     int exp;
-    Term(float c = 0, int e = 0) : coef(c), exp(e) {}
+    Term(double c = 0, int e = 0) : coef(c), exp(e) {}
 };
 
+// 多項式類別
 class Polynomial {
 private:
-    Term* term;
-    int terms;
-public:
-    Polynomial(int cap = 20) { term = new Term[cap]; terms = 0; }
-    ~Polynomial() { delete[] term; }
+    vector<Term> terms;
 
-    friend istream& operator>>(istream& in, Polynomial& p) {
-        cout << "項數: "; in >> p.terms;
-        for (int i = 0; i < p.terms; i++) {
-            cout << "輸入係數 指數: ";
-            in >> p.term[i].coef >> p.term[i].exp;
+    // 自動合併同指數項
+    void simplify() {
+        sort(terms.begin(), terms.end(), [](const Term& a, const Term& b) {
+            return a.exp > b.exp;
+        });
+
+        vector<Term> result;
+        for (auto& t : terms) {
+            if (!result.empty() && result.back().exp == t.exp)
+                result.back().coef += t.coef;
+            else
+                result.push_back(t);
         }
+
+        // 移除係數為 0 的項
+        terms.clear();
+        for (auto& t : result)
+            if (fabs(t.coef) > 1e-6)
+                terms.push_back(t);
+    }
+
+public:
+    // 讀入運算子
+    friend istream& operator>>(istream& in, Polynomial& p) {
+        int n;
+        cout << "請輸入項數：";
+        in >> n;
+        p.terms.clear();
+        for (int i = 0; i < n; i++) {
+            double c; int e;
+            cout << "輸入第 " << i + 1 << " 項 (係數 指數)：";
+            in >> c >> e;
+            p.terms.push_back(Term(c, e));
+        }
+        p.simplify();
         return in;
     }
 
+    // 輸出運算子
     friend ostream& operator<<(ostream& out, const Polynomial& p) {
-        for (int i = 0; i < p.terms; i++) {
-            if (i && p.term[i].coef > 0) out << " + ";
-            if (p.term[i].coef < 0) out << " - ";
-            float c = fabs(p.term[i].coef);
-            out << c << "x^" << p.term[i].exp;
+        if (p.terms.empty()) {
+            out << "0";
+            return out;
+        }
+
+        for (int i = 0; i < p.terms.size(); i++) {
+            double c = p.terms[i].coef;
+            int e = p.terms[i].exp;
+
+            if (i > 0 && c > 0) out << " + ";
+            else if (c < 0) out << " - ";
+
+            out << fabs(c);
+            if (e > 0) out << "x^" << e;
         }
         return out;
     }
 
-    Polynomial Add(const Polynomial& b) const {
-        Polynomial r;
-        int i = 0, j = 0, k = 0;
-        while (i < terms && j < b.terms) {
-            if (term[i].exp > b.term[j].exp) r.term[k++] = term[i++];
-            else if (term[i].exp < b.term[j].exp) r.term[k++] = b.term[j++];
-            else r.term[k++] = Term(term[i].coef + b.term[j].coef, term[i].exp), i++, j++;
-        }
-        while (i < terms) r.term[k++] = term[i++];
-        while (j < b.terms) r.term[k++] = b.term[j++];
-        r.terms = k;
+    // 多項式加法
+    Polynomial operator+(const Polynomial& b) const {
+        Polynomial r = *this;
+        for (auto& t : b.terms)
+            r.terms.push_back(t);
+        r.simplify();
         return r;
     }
 
-    Polynomial Mult(const Polynomial& b) const {
+    // 多項式乘法
+    Polynomial operator*(const Polynomial& b) const {
         Polynomial r;
-        for (int i = 0; i < terms; i++)
-            for (int j = 0; j < b.terms; j++) {
-                int e = term[i].exp + b.term[j].exp;
-                float c = term[i].coef * b.term[j].coef;
-                bool found = false;
-                for (int k = 0; k < r.terms; k++)
-                    if (r.term[k].exp == e) { r.term[k].coef += c; found = true; break; }
-                if (!found) r.term[r.terms++] = Term(c, e);
-            }
+        for (auto& aTerm : terms)
+            for (auto& bTerm : b.terms)
+                r.terms.push_back(Term(aTerm.coef * bTerm.coef, aTerm.exp + bTerm.exp));
+        r.simplify();
         return r;
     }
 
-    float Eval(float x) const {
-        float sum = 0;
-        for (int i = 0; i < terms; i++) sum += term[i].coef * pow(x, term[i].exp);
+    // 代入求值
+    double evaluate(double x) const {
+        double sum = 0;
+        for (auto& t : terms)
+            sum += t.coef * pow(x, t.exp);
         return sum;
     }
 };
 
 int main() {
     Polynomial a, b;
-    cout << "輸入 a(x):\n"; cin >> a;
-    cout << "輸入 b(x):\n"; cin >> b;
 
-    Polynomial sum = a.Add(b);
-    Polynomial prod = a.Mult(b);
+    cout << "輸入 a(x)：\n";
+    cin >> a;
+    cout << "輸入 b(x)：\n";
+    cin >> b;
 
-    float x;
-    cout << "輸入 x 的值: "; cin >> x;
+    Polynomial sum = a + b;
+    Polynomial prod = a * b;
 
-    cout << "\na(x) = " << a
-         << "\n\nb(x) = " << b
-         << "\n\na + b = " << sum
-         << "\n\na * b = " << prod
-         << "\n\na(" << x << ") = " << a.Eval(x)
-         << "\n\nb(" << x << ") = " << b.Eval(x) << endl;
+    double x;
+    cout << "請輸入 x 的值：";
+    cin >> x;
 
-    return 0;
+    cout << "\n====== 結果 ======\n";
+    cout << "a(x) = " << a << endl;
+    cout << "b(x) = " << b << endl;
+    cout << "a + b = " << sum << endl;
+    cout << "a * b = " << prod << endl;
+    cout << "a(" << x << ") = " << a.evaluate(x) << endl;
+    cout << "b(" << x << ") = " << b.evaluate(x) << endl;
 }
 
 
+
+```
+## 四、測試結果範例
+```scss
+輸入 a(x)：
+請輸入項數：3
+輸入第 1 項 (係數 指數)：2 2
+輸入第 2 項 (係數 指數)：1 1
+輸入第 3 項 (係數 指數)：3 0
+
+輸入 b(x)：
+請輸入項數：2
+輸入第 1 項 (係數 指數)：1 1
+輸入第 2 項 (係數 指數)：4 0
+
+請輸入 x 的值：2
+
 ```
 
-## 效能分析
+## 五、效能分析
 
 ### 時間複雜度
 
@@ -172,63 +212,31 @@ int main() {
 
 
 
-### 效能影響因素
 
-1. 輸入項數（terms）多寡
-
-    - 項數越多，加法、乘法時間會隨比例增加。
-    - 對乘法而言，項數成平方關係成長。
-
-2. 重複指數的出現次數
-    - 若多項式乘法中有許多相同指數項，會花時間搜尋合併（線性搜尋）。
-    - 若改用 map 或 hash 儲存，可降至 O(m × n) → O(m × n log n)。
-
-3. pow() 函數使用
-    - Eval() 每次呼叫 pow(x, exp)，若改用**逐步乘法（Horner’s Rule）**可加快效能。
-    
 ## 測試與驗證
 
-### 輸入
-
-輸入 a(x):
-項數: 3
-輸入係數 指數: 2 3
-輸入係數 指數: 2 2
-輸入係數 指數: 4 1
-
-輸入 b(x):
-項數: 2
-輸入係數 指數: 3 1
-輸入係數 指數: 4 0
-
-輸入 x 的值: 2
-
-
-### 則輸出
-
-   a(x) = 2x^3 + 2x^2 + 4x^1
-
-b(x) = 3x^1 + 4
-
-a + b = 2x^3 + 2x^2 + 7x^1 + 4
-
-a * b = 6x^4 + 14x^3 + 20x^2 + 16x^1
-
-a(2) = 32
-
-b(2) = 10
 
 ## 申論及開發報告
 
-### 心得討論
+### 六、心得與反思
 
-在這次多項式運算程式的開發過程中，我更深入了解了 C++ 的物件導向觀念，尤其是類別設計與運算子多載的應用。
-一開始在設計 Polynomial 類別時，需要考慮如何有效地儲存每一項的係數與指數，最後採用了 Term 類別搭配陣列的方式，讓整體結構清晰且方便操作。
+這次作業讓我重新體會到 C++ 記憶體管理的重要性。
+一開始我用 new 去開陣列，結果一不小心就爆掉（exit code 1），
+後來才學到用 vector 真的省很多麻煩。
 
-在實作加法與乘法時，我發現多項式的運算邏輯和一般數字不同，必須根據指數進行比對與合併。乘法的部分特別容易出錯，因為要同時處理每一項的展開與合併，讓我體會到演算法規劃的重要性。
+我也覺得運算子多載很有趣，
+它讓我們能用 a + b、a * b 這種方式直接操作物件，
+寫起來真的比較「像數學」。
 
-整體來說，這個程式不僅讓我熟悉了類別封裝、動態記憶體配置與運算子多載的使用，也培養了我拆解問題與分析效能的能力。雖然程式仍可優化（例如使用 vector 或 Horner’s Rule），但我已能理解物件導向在數學運算中的應用價值，這是相當有收穫的一次練習。
+整體來說，這題的程式讓我更熟悉物件導向、vector 的使用方式，
+也更了解程式架構設計的重要性。
+我覺得雖然內容不難，但能練習邏輯思考與設計能力，是滿實用的一題。
 
 ### 總結
 
-這次作業不僅強化了我對運算子多載與類別設計的理解，也讓我學會如何將數學概念轉化成可執行的程式邏輯，體會到物件導向在工程上的靈活性。
+| 功能    | 主要概念     | 學到的東西            |
+| ----- | -------- | ---------------- |
+| 多項式運算 | 類別與運算子多載 | 怎麼讓物件像變數一樣運算     |
+| 加法與乘法 | 比對指數合併項  | 學到如何用排序與合併處理資料   |
+| 代入求值  | pow() 計算 | 實作出能帶入變數的多項式     |
+| 整體架構  | 物件導向思維   | 程式設計不只是能跑，而是要有結構 |
