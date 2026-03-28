@@ -231,7 +231,7 @@ int main() {
     return 0;
 }
 ```
-## 四測試結果範例
+## 四測試與驗證
 多項式測試輸出：
 ```text
 n = 100, height = 14, h/log2(n) = 2.1
@@ -288,8 +288,6 @@ BST 在隨機插入情況下，
 申論及開發報告
 
 ## 申論及開發報告
-
-### 六、心得與反思
 這次作業讓我更熟悉 Heap 與 Binary Search Tree 的實作方式，
 也理解了為什麼 Priority Queue 可以用 Heap 來實現。
 
