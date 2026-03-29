@@ -3,7 +3,7 @@
 
 using namespace std;
 
-// 題目要求的抽象類別 ADT
+
 template <class T>
 class MinPQ {
 public:
@@ -14,7 +14,7 @@ public:
     virtual void Pop() = 0;
 };
 
-// 繼承自抽象類別的 MinHeap 實作
+
 template <class T>
 class MinHeap : public MinPQ<T> {
 private:
@@ -22,7 +22,7 @@ private:
     int capacity;
     int heapSize;
 
-    // 向上調整
+
     void filterUp(int start) {
         int curr = start;
         int parent = (curr - 1) / 2;
@@ -36,7 +36,7 @@ private:
         heap[curr] = temp;
     }
 
-    // 向下調整
+
     void filterDown(int start, int end) {
         int curr = start;
         int leftChild = 2 * curr + 1;
@@ -59,7 +59,7 @@ public:
         heapSize = 0;
     }
 
-    // 加入解構子，釋放動態記憶體
+
     ~MinHeap() {
         delete[] heap;
     }

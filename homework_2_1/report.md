@@ -36,7 +36,6 @@
 
 using namespace std;
 
-// 題目要求的抽象類別 ADT
 template <class T>
 class MinPQ {
 public:
@@ -47,7 +46,6 @@ public:
     virtual void Pop() = 0;
 };
 
-// 繼承自抽象類別的 MinHeap 實作
 template <class T>
 class MinHeap : public MinPQ<T> {
 private:
@@ -55,7 +53,6 @@ private:
     int capacity;
     int heapSize;
 
-    // 向上調整
     void filterUp(int start) {
         int curr = start;
         int parent = (curr - 1) / 2;
@@ -69,7 +66,7 @@ private:
         heap[curr] = temp;
     }
 
-    // 向下調整
+
     void filterDown(int start, int end) {
         int curr = start;
         int leftChild = 2 * curr + 1;
@@ -92,7 +89,7 @@ public:
         heapSize = 0;
     }
 
-    // 加入解構子，釋放動態記憶體
+
     ~MinHeap() {
         delete[] heap;
     }
@@ -149,13 +146,13 @@ public:
         return max(lh, rh) + 1;
     }
 
-    // 2(b) 刪除鍵值 k 的函式
+
     TreeNode* remove(TreeNode* node, int k) {
         if (node == NULL) return NULL;
         if (k < node->key) node->left = remove(node->left, k);
         else if (k > node->key) node->right = remove(node->right, k);
         else {
-            // 情況一：葉子或只有一個小孩
+          
             if (node->left == NULL) {
                 TreeNode* temp = node->right;
                 delete node;
@@ -165,7 +162,7 @@ public:
                 delete node;
                 return temp;
             }
-            // 情況二：有兩個小孩，找右子樹最小
+       
             TreeNode* temp = node->right;
             while (temp->left != NULL) temp = temp->left;
             node->key = temp->key;
@@ -190,7 +187,7 @@ private:
     PolyNode* header;
 public:
     PolyList() {
-        header = new PolyNode(0, -1); // 指數-1作為Header標記
+        header = new PolyNode(0, -1); 
         header->next = header;
     }
 
@@ -198,7 +195,7 @@ public:
         if (c == 0) return;
         PolyNode* prev = header;
         PolyNode* curr = header->next;
-        // 依照指數降序排列插入
+    
         while (curr != header && curr->exp > e) {
             prev = curr;
             curr = curr->next;
