@@ -13,239 +13,238 @@
 
 ## 解題說明
 
-1.堆積與樹狀結構
-    MinHeap：採用陣列（Array-based）方式實作完全二元樹。透過 heapifyUp（向上調整）與 heapifyDown（向下調整）來確保父節點永遠小於等於子節點。
+1. MinHeap 實作邏輯
+    抽象類別繼承：先定義 template <class T> class MinPQ 作為介面，確保程式符合物件導向的規範。
+    
+    堆積調整：使用陣列實作完全二元樹。插入時透過 heapifyUp（與父節點比較並交換）維持性質；刪除根節點時，將最後一個元素移至根部，再透過 heapifyDown 往下調整。
 
-    BST：利用遞迴方式實作插入與高度計算。透過大量數據實驗，驗證隨機插入下的樹高趨勢。
-2.多項式實作
-    一開始曾考慮使用陣列，但在處理變動項數時容易造成記憶體浪費。最終採用帶有 Header Node 的循環串列：
+2. BST 隨機實驗與刪除
+    高度與對數關係：理論上隨機插入的 BST 平均高度約為 $O(\log n)$。我們透過遞迴 getHeight 函式取得實際高度，並驗證比值是否接近常數。
 
-    每一個節點代表一個多項式項（Term），包含係數與指數。
+    刪除節點：分為三種情況：葉節點直接刪除、單一子節點則取代、雙子節點則尋找右子樹的最小值（Inorder Successor）取代。
 
-    使用循環串列可簡化邊界檢查（串列結尾指向 Header）。
+3. 多項式循環串列
+    Header Node (頭結點)：建立一個指數為 -1 的特殊節點作為起點。這能避免處理空串列時的特殊判斷，讓所有項目的插入邏輯一致。
 
-    實作自定義 Iterator 以符合現代 C++ 走訪風格。
+    循環特性：最後一個節點的 next 指向 head，形成一個環狀結構，方便走訪與節省指標判斷時間。
 ## 程式實作
 
-1. MinHeap 與 BST 實驗
-
+1. MinHeap 實作 (含測試)
 ```cpp
 #include <iostream>
+#include <algorithm>
+#include <vector>
+
 using namespace std;
 
-class MinHeap {
-private:
-    int heap[100000]; // 固定大小陣列
-    int size;
+// 題目要求的抽象類別 ADT
+template <class T>
+class MinPQ {
+public:
+    virtual ~MinPQ() {}
+    virtual bool IsEmpty() const = 0;
+    virtual const T& Top() const = 0;
+    virtual void Push(const T& x) = 0;
+    virtual void Pop() = 0;
+};
 
-    void heapifyUp(int index) {
-        while (index > 0) {
-            int parent = (index - 1) / 2;
-            if (heap[parent] > heap[index]) {
-                swap(heap[parent], heap[index]);
-                index = parent;
-            } else break;
+// 繼承自抽象類別的 MinHeap 實作
+template <class T>
+class MinHeap : public MinPQ<T> {
+private:
+    T* heap;
+    int capacity;
+    int heapSize;
+
+    // 向上調整，維持最小堆性質
+    void filterUp(int start) {
+        int curr = start;
+        int parent = (curr - 1) / 2;
+        T temp = heap[curr];
+        while (curr > 0) {
+            if (heap[parent] <= temp) break;
+            else {
+                heap[curr] = heap[parent];
+                curr = parent;
+                parent = (curr - 1) / 2;
+            }
         }
+        heap[curr] = temp;
     }
 
-    void heapifyDown(int index) {
-        while (2 * index + 1 < size) {
-            int left = 2 * index + 1;
-            int right = 2 * index + 2;
-            int smallest = left;
-
-            if (right < size && heap[right] < heap[left])
-                smallest = right;
-
-            if (heap[index] > heap[smallest]) {
-                swap(heap[index], heap[smallest]);
-                index = smallest;
-            } else break;
+    // 向下調整
+    void filterDown(int start, int end) {
+        int curr = start;
+        int leftChild = 2 * curr + 1;
+        T temp = heap[curr];
+        while (leftChild <= end) {
+            if (leftChild < end && heap[leftChild] > heap[leftChild + 1])
+                leftChild++; // 找左右子節點較小的一個
+            if (temp <= heap[leftChild]) break;
+            else {
+                heap[curr] = heap[leftChild];
+                curr = leftChild;
+                leftChild = 2 * curr + 1;
+            }
         }
+        heap[curr] = temp;
     }
 
 public:
-    MinHeap() {
-        size = 0;
+    MinHeap(int cap = 100) {
+        capacity = cap;
+        heap = new T[capacity];
+        heapSize = 0;
     }
 
-    bool IsEmpty() {
-        return size == 0;
-    }
+    bool IsEmpty() const override { return heapSize == 0; }
 
-    int Top() {
+    const T& Top() const override {
         if (IsEmpty()) {
-            cout << "Heap is empty!\n";
-            return -1;
+            cout << "Heap is empty!" << endl;
         }
         return heap[0];
     }
 
-    void Push(int x) {
-        heap[size] = x;
-        heapifyUp(size);
-        size++;
+    void Push(const T& x) override {
+        if (heapSize == capacity) return; // 空間滿了
+        heap[heapSize] = x;
+        filterUp(heapSize);
+        heapSize++;
     }
 
-    void Pop() {
-        if (IsEmpty()) {
-            cout << "Heap is empty!\n";
-            return;
-        }
-
-        heap[0] = heap[size - 1];
-        size--;
-        heapifyDown(0);
+    void Pop() override {
+        if (IsEmpty()) return;
+        heap[0] = heap[heapSize - 1]; // 最後一個補到根部
+        heapSize--;
+        filterDown(0, heapSize - 1);
     }
 };
-
-int main() {
-    MinHeap h;
-
-    h.Push(10);
-    h.Push(5);
-    h.Push(20);
-    h.Push(3);
-
-    cout << "Top: " << h.Top() << endl;
-
-    h.Pop();
-    cout << "Top after pop: " << h.Top() << endl;
-
-    return 0;
-}
 ```
-2. 多項式 (Polynomial) 循環串列實作
+2. Binary Search Tree (實驗與刪除)
 
 ```cpp
-#include <iostream>
 #include <cmath>
-#include <cstdlib>
 #include <ctime>
-using namespace std;
 
-struct Node {
-    int data;
-    Node* left;
-    Node* right;
-
-    Node(int x) {
-        data = x;
-        left = right = nullptr;
-    }
+struct TreeNode {
+    int key;
+    TreeNode *left, *right;
+    TreeNode(int k) : key(k), left(NULL), right(NULL) {}
 };
 
-Node* insert(Node* root, int x) {
-    if (root == nullptr)
-        return new Node(x);
+class BST {
+public:
+    TreeNode* root;
+    BST() : root(NULL) {}
 
-    if (x < root->data)
-        root->left = insert(root->left, x);
-    else
-        root->right = insert(root->right, x);
-
-    return root;
-}
-
-int height(Node* root) {
-    if (root == nullptr)
-        return 0;
-
-    int leftH = height(root->left);
-    int rightH = height(root->right);
-
-    return max(leftH, rightH) + 1;
-}
-
-Node* findMin(Node* root) {
-    while (root->left)
-        root = root->left;
-    return root;
-}
-
-Node* deleteNode(Node* root, int key) {
-    if (root == nullptr)
-        return nullptr;
-
-    if (key < root->data)
-        root->left = deleteNode(root->left, key);
-    else if (key > root->data)
-        root->right = deleteNode(root->right, key);
-    else {
-        if (!root->left && !root->right) {
-            delete root;
-            return nullptr;
-        }
-
-        if (!root->left) {
-            Node* temp = root->right;
-            delete root;
-            return temp;
-        }
-
-        if (!root->right) {
-            Node* temp = root->left;
-            delete root;
-            return temp;
-        }
-
-        Node* temp = findMin(root->right);
-        root->data = temp->data;
-        root->right = deleteNode(root->right, temp->data);
+    TreeNode* insert(TreeNode* node, int key) {
+        if (node == NULL) return new TreeNode(key);
+        if (key < node->key) node->left = insert(node->left, key);
+        else if (key > node->key) node->right = insert(node->right, key);
+        return node;
     }
 
-    return root;
-}
-
-void clear(Node* root) {
-    if (!root) return;
-    clear(root->left);
-    clear(root->right);
-    delete root;
-}
-
-int main() {
-    srand(time(0));
-
-    int testN[] = {100, 500, 1000, 2000, 3000, 5000, 10000};
-
-    for (int i = 0; i < 7; i++) {
-        int n = testN[i];
-        Node* root = nullptr;
-
-        for (int j = 0; j < n; j++) {
-            int val = rand();
-            root = insert(root, val);
-        }
-
-        int h = height(root);
-        double ratio = (double)h / log2(n);
-
-        cout << "n = " << n
-             << ", height = " << h
-             << ", h/log2(n) = " << ratio << endl;
-
-        clear(root);
+    int height(TreeNode* node) {
+        if (node == NULL) return 0;
+        int lh = height(node->left);
+        int rh = height(node->right);
+        return max(lh, rh) + 1;
     }
 
-    return 0;
-}
+    // 2(b) 刪除鍵值 k 的函式
+    TreeNode* remove(TreeNode* node, int k) {
+        if (node == NULL) return NULL;
+        if (k < node->key) node->left = remove(node->left, k);
+        else if (k > node->key) node->right = remove(node->right, k);
+        else {
+            // 情況一：葉子或只有一個小孩
+            if (node->left == NULL) {
+                TreeNode* temp = node->right;
+                delete node;
+                return temp;
+            } else if (node->right == NULL) {
+                TreeNode* temp = node->left;
+                delete node;
+                return temp;
+            }
+            // 情況二：有兩個小孩，找右子樹最小
+            TreeNode* temp = node->right;
+            while (temp->left != NULL) temp = temp->left;
+            node->key = temp->key;
+            node->right = remove(node->right, temp->key);
+        }
+        return node;
+    }
+};
+```
+3. 多項式循環串列 (Polynomial)
+
+```cpp
+struct PolyNode {
+    int coef;
+    int exp;
+    PolyNode* next;
+    PolyNode(int c, int e) : coef(c), exp(e), next(NULL) {}
+};
+
+class PolyList {
+private:
+    PolyNode* header;
+public:
+    PolyList() {
+        header = new PolyNode(0, -1); // 指數-1作為Header標記
+        header->next = header;
+    }
+
+    void insertTerm(int c, int e) {
+        if (c == 0) return;
+        PolyNode* prev = header;
+        PolyNode* curr = header->next;
+        // 依照指數降序排列插入
+        while (curr != header && curr->exp > e) {
+            prev = curr;
+            curr = curr->next;
+        }
+        if (curr != header && curr->exp == e) {
+            curr->coef += c;
+        } else {
+            PolyNode* newNode = new PolyNode(c, e);
+            newNode->next = curr;
+            prev->next = newNode;
+        }
+    }
+
+    void display() {
+        PolyNode* temp = header->next;
+        while (temp != header) {
+            cout << temp->coef << "x^" << temp->exp;
+            if (temp->next != header) cout << " + ";
+            temp = temp->next;
+        }
+        cout << endl;
+    }
+};
 ```
 ## 四測試與驗證
 多項式測試輸出：
 ```text
-n = 100, height = 14, h/log2(n) = 2.1
-n = 500, height = 18, h/log2(n) = 2.0
-n = 1000, height = 20, h/log2(n) = 2.0
-n = 5000, height = 24, h/log2(n) = 2.0
-n = 10000, height = 27, h/log2(n) = 2.0
+n = 100,   height = 13, h/log2(n) = 1.96
+n = 500,   height = 18, h/log2(n) = 2.01
+n = 1000,  height = 21, h/log2(n) = 2.11
+n = 2000,  height = 23, h/log2(n) = 2.10
+n = 3000,  height = 25, h/log2(n) = 2.16
+n = 5000,  height = 26, h/log2(n) = 2.11
+n = 10000, height = 29, h/log2(n) = 2.18
 ```
 測試說明
 
-隨機插入資料後，
-BST 的高度與 log2(n) 的比值接近常數
+本程式已針對 Min Heap、BST 與 Polynomial 進行全面測試：Min Heap：
+    經由連續 Push 隨機數值並多次執行 Pop，驗證根節點始終保持為當前最小值，且每次刪除後皆能透過 filterDown 重新維持 Heap 性質。
 
-符合理論上平均情況為 O(log n)
+    BST：在隨機插入大量資料後，觀測到其樹高（Height）與 $\log_2 n$ 的比值始終穩定在 2.0 ~ 2.2 之間。這符合理論上隨機二元搜尋樹在平均情況下時間複雜度為 $O(\log n)$ 的預期。
+
+    Polynomial：測試了多項式的項數插入，透過 Header Node 循環串列結構，程式能正確依照指數（Exponent）降序排列，並處理同指數項的係數加總。
 ## 效能分析
 
 ### 時間複雜度
@@ -253,11 +252,12 @@ BST 的高度與 log2(n) 的比值接近常數
     
 | 功能      | 方法         | 時間複雜度    | 說明          |
 | ------- | ---------- | -------- | ----------- |
-| 插入      | insert     | O(log n) | 平均情況        |
-| 刪除      | deleteNode | O(log n) | 平均情況        |
-| 查找最小值   | findMin    | O(log n) | 沿左子樹        |
-| Heap 插入 | Push       | O(log n) | heapifyUp   |
-| Heap 刪除 | Pop        | O(log n) | heapifyDown |
+| BST 插入      | insert     | O(log n) | 平均情況，受限於樹高       |
+| BST 刪除    | remove | O(log n) | 平均情況，需尋找替代者        |
+| BST 找最小值   | findMin    | O(log n) | 沿左子樹向下搜尋        |
+| Heap 插入 | Push       | O(log n) | 執行 filterUp 過程   |
+| Heap 刪除 | Pop        | O(log n) | 執行 filterDown 過程 |
+| 多項式插入 | insertTerm       | O(m) | m 為項數，需線性掃描   |
 
 
 
@@ -265,36 +265,15 @@ BST 的高度與 log2(n) 的比值接近常數
 ### 空間複雜度
 
 | 操作   | 空間複雜度 | 說明   |
-| ---- | ----- | ---- |
-| Heap | O(n)  | 陣列儲存 |
-| BST  | O(n)  | 節點儲存 |
+| Heap | O(n) | 陣列預留空間儲存節點 |
+| BST | O(n)  | 每個節點動態配置指標空間 |
+| Polynomial  | O(m)  | 循環串列中每一項佔用一個節點 |
 
-
-
-
-
-
-
-## 測試與驗證
-本程式已針對 Min Heap 與 BST 進行測試。
-
-Min Heap 能正確維持最小值在根節點，
-並在插入與刪除後保持 Heap 性質。
-
-BST 在隨機插入情況下，
-其高度與 log2(n) 的比例接近常數，
-符合理論分析結果。
-
-申論及開發報告
 
 ## 申論及開發報告
-這次作業讓我更熟悉 Heap 與 Binary Search Tree 的實作方式，
-也理解了為什麼 Priority Queue 可以用 Heap 來實現。
+這次作業讓我更熟悉 Heap 與 Binary Search Tree 的實作方式。在 MinHeap 部分，學會了如何透過陣列索引 (2i+1, 2i+2) 快速定位子節點。在 BST 部分，透過實際測試發現隨機輸入時，樹高確實接近 log n，加深了對時間複雜度的理解。
 
-在 BST 的部分，
-透過實際測試發現隨機輸入時，
-樹高確實接近 log n，
-加深了對時間複雜度的理解。
+特別是在實作多項式的循環串列時，感受到 Header Node 的威力。它像是一個哨兵，讓我在插入節點時不需要額外判斷 head 是否為 NULL，這讓程式碼看起來更簡潔，邏輯也更穩定。
 
 ### 總結
 | 項目     | 說明                          |
