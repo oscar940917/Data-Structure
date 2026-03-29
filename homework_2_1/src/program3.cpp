@@ -1,3 +1,7 @@
+#include <iostream>
+
+using namespace std;
+
 struct PolyNode {
     int coef;
     int exp;
@@ -10,7 +14,7 @@ private:
     PolyNode* header;
 public:
     PolyList() {
-        header = new PolyNode(0, -1); // 指數-1作為Header標記
+        header = new PolyNode(0, -1); 
         header->next = header;
     }
 
@@ -18,7 +22,7 @@ public:
         if (c == 0) return;
         PolyNode* prev = header;
         PolyNode* curr = header->next;
-        // 依照指數降序排列插入
+        
         while (curr != header && curr->exp > e) {
             prev = curr;
             curr = curr->next;
@@ -34,6 +38,10 @@ public:
 
     void display() {
         PolyNode* temp = header->next;
+        if (temp == header) {
+            cout << "0" << endl;
+            return;
+        }
         while (temp != header) {
             cout << temp->coef << "x^" << temp->exp;
             if (temp->next != header) cout << " + ";
@@ -42,3 +50,16 @@ public:
         cout << endl;
     }
 };
+
+int main() {
+    PolyList poly;
+    poly.insertTerm(3, 2);
+    poly.insertTerm(4, 5);
+    poly.insertTerm(2, 2); 
+    poly.insertTerm(-1, 0);
+
+    cout << "Polynomial Expression: ";
+    poly.display();
+
+    return 0;
+}

@@ -1,112 +1,68 @@
 #include <iostream>
+#include <algorithm>
 #include <cmath>
-#include <cstdlib>
 #include <ctime>
+
 using namespace std;
 
-struct Node {
-    int data;
-    Node* left;
-    Node* right;
+struct TreeNode {
+    int key;
+    TreeNode *left, *right;
+    TreeNode(int k) : key(k), left(NULL), right(NULL) {}
+};
 
-    Node(int x) {
-        data = x;
-        left = right = nullptr;
+class BST {
+public:
+    TreeNode* root;
+    BST() : root(NULL) {}
+
+    TreeNode* insert(TreeNode* node, int key) {
+        if (node == NULL) return new TreeNode(key);
+        if (key < node->key) node->left = insert(node->left, key);
+        else if (key > node->key) node->right = insert(node->right, key);
+        return node;
+    }
+
+    int height(TreeNode* node) {
+        if (node == NULL) return 0;
+        int lh = height(node->left);
+        int rh = height(node->right);
+        return max(lh, rh) + 1;
+    }
+
+    TreeNode* remove(TreeNode* node, int k) {
+        if (node == NULL) return NULL;
+        if (k < node->key) node->left = remove(node->left, k);
+        else if (k > node->key) node->right = remove(node->right, k);
+        else {
+            if (node->left == NULL) {
+                TreeNode* temp = node->right;
+                delete node;
+                return temp;
+            } else if (node->right == NULL) {
+                TreeNode* temp = node->left;
+                delete node;
+                return temp;
+            }
+            TreeNode* temp = node->right;
+            while (temp->left != NULL) temp = temp->left;
+            node->key = temp->key;
+            node->right = remove(node->right, temp->key);
+        }
+        return node;
     }
 };
 
-Node* insert(Node* root, int x) {
-    if (root == nullptr)
-        return new Node(x);
-
-    if (x < root->data)
-        root->left = insert(root->left, x);
-    else
-        root->right = insert(root->right, x);
-
-    return root;
-}
-
-int height(Node* root) {
-    if (root == nullptr)
-        return 0;
-
-    int leftH = height(root->left);
-    int rightH = height(root->right);
-
-    return max(leftH, rightH) + 1;
-}
-
-Node* findMin(Node* root) {
-    while (root->left)
-        root = root->left;
-    return root;
-}
-
-Node* deleteNode(Node* root, int key) {
-    if (root == nullptr)
-        return nullptr;
-
-    if (key < root->data)
-        root->left = deleteNode(root->left, key);
-    else if (key > root->data)
-        root->right = deleteNode(root->right, key);
-    else {
-        if (!root->left && !root->right) {
-            delete root;
-            return nullptr;
-        }
-
-        if (!root->left) {
-            Node* temp = root->right;
-            delete root;
-            return temp;
-        }
-
-        if (!root->right) {
-            Node* temp = root->left;
-            delete root;
-            return temp;
-        }
-
-        Node* temp = findMin(root->right);
-        root->data = temp->data;
-        root->right = deleteNode(root->right, temp->data);
-    }
-
-    return root;
-}
-
-void clear(Node* root) {
-    if (!root) return;
-    clear(root->left);
-    clear(root->right);
-    delete root;
-}
-
 int main() {
-    srand(time(0));
+    BST tree;
+    int data[] = {50, 30, 70, 20, 40, 60, 80};
+    for(int x : data) tree.root = tree.insert(tree.root, x);
 
-    int testN[] = {100, 500, 1000, 2000, 3000, 5000, 10000};
-
-    for (int i = 0; i < 7; i++) {
-        int n = testN[i];
-        Node* root = nullptr;
-
-        for (int j = 0; j < n; j++) {
-            int val = rand();
-            root = insert(root, val);
-        }
-
-        int h = height(root);
-        double ratio = (double)h / log2(n);
-
-        cout << "n = " << n
-             << ", height = " << h
-             << ", h/log2(n) = " << ratio << endl;
-
-        clear(root);
-    }
+    cout << "BST Height: " << tree.height(tree.root) << endl;
+    
+    cout << "Removing node 30..." << endl;
+    tree.root = tree.remove(tree.root, 30);
+    cout << "New BST Height: " << tree.height(tree.root) << endl;
 
     return 0;
 }
