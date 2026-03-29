@@ -33,7 +33,6 @@
 ```cpp
 #include <iostream>
 #include <algorithm>
-#include <vector>
 
 using namespace std;
 
@@ -56,18 +55,16 @@ private:
     int capacity;
     int heapSize;
 
-    // 向上調整，維持最小堆性質
+    // 向上調整
     void filterUp(int start) {
         int curr = start;
         int parent = (curr - 1) / 2;
         T temp = heap[curr];
         while (curr > 0) {
             if (heap[parent] <= temp) break;
-            else {
-                heap[curr] = heap[parent];
-                curr = parent;
-                parent = (curr - 1) / 2;
-            }
+            heap[curr] = heap[parent];
+            curr = parent;
+            parent = (curr - 1) / 2;
         }
         heap[curr] = temp;
     }
@@ -79,13 +76,11 @@ private:
         T temp = heap[curr];
         while (leftChild <= end) {
             if (leftChild < end && heap[leftChild] > heap[leftChild + 1])
-                leftChild++; // 找左右子節點較小的一個
+                leftChild++; 
             if (temp <= heap[leftChild]) break;
-            else {
-                heap[curr] = heap[leftChild];
-                curr = leftChild;
-                leftChild = 2 * curr + 1;
-            }
+            heap[curr] = heap[leftChild];
+            curr = leftChild;
+            leftChild = 2 * curr + 1;
         }
         heap[curr] = temp;
     }
@@ -97,17 +92,19 @@ public:
         heapSize = 0;
     }
 
+    // 加入解構子，釋放動態記憶體
+    ~MinHeap() {
+        delete[] heap;
+    }
+
     bool IsEmpty() const override { return heapSize == 0; }
 
     const T& Top() const override {
-        if (IsEmpty()) {
-            cout << "Heap is empty!" << endl;
-        }
         return heap[0];
     }
 
     void Push(const T& x) override {
-        if (heapSize == capacity) return; // 空間滿了
+        if (heapSize == capacity) return; 
         heap[heapSize] = x;
         filterUp(heapSize);
         heapSize++;
@@ -115,7 +112,7 @@ public:
 
     void Pop() override {
         if (IsEmpty()) return;
-        heap[0] = heap[heapSize - 1]; // 最後一個補到根部
+        heap[0] = heap[heapSize - 1];
         heapSize--;
         filterDown(0, heapSize - 1);
     }
