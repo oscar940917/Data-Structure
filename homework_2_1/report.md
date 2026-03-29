@@ -1,7 +1,7 @@
 # 41343129
 
 作業三
-# Problem : Min Heap 與 Binary Search Tree
+# Problem : Max/Min Heap 與 Binary Search Tree
 ## 題目說明
 
 作業說明:
