@@ -374,8 +374,8 @@ n,Insertion_Avg,Quick_Avg,Merge_Avg,Heap_Avg
 | Insertion Sort      | $O(n^2)$     | $O(n^2)$ | $n$ 大時超慢。但在小數據量時常數項極低，表現最優。       |
 | Quick Sort (M3)    | $O(n^2)$ | $O(n \log n)$ | 用了三數取中法後，隨機排列遇到最壞狀況的機率變極低。        |
 | Merge Sort (Iter)   | $O(n \log n)$    | $O(n \log n)$ | 迭代版省去了遞迴的空間開銷，但還是需要 $O(n)$ 輔助空間。        |
-| Heap Sort | Push       | $O(n \log n)$ | $O(n \log n)$   | 最壞情況下最穩定的演算法，常數項比迭代 Merge 稍小。|
-| Composite Sort | Pop        | $O(n \log n)$ | $O(n \log n)$ | 截長補短。小數據用插入，大數據用堆積，兼顧動態最佳效能。|
+| Heap Sort | $O(n \log n)$ | $O(n \log n)$   | 最壞情況下最穩定的演算法，常數項比迭代 Merge 稍小。|
+| Composite Sort | $O(n \log n)$ | $O(n \log n)$ | 截長補短。小數據用插入，大數據用堆積，兼顧動態最佳效能。|
 
 
 
