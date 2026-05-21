@@ -362,8 +362,11 @@ n,Insertion_Avg,Quick_Avg,Merge_Avg,Heap_Avg
 ```
 測試說明
 
-    最壞情況分析：在最壞情況下，當 $n$ 超過 500 之後，Insertion Sort 的時間直接爆炸，呈現很明顯的 $O(n^2)$ 拋物線上升。而使用三數取中的 Quick Sort、迭代版 Merge Sort 還有 Heap Sort 則維持在很平緩的 $O(n \log n)$ 曲線。其中 Heap Sort 的最壞情況表現稍微優於其他兩者。
-    複合排序驗證：在 $n=20$ 時，Composite 跑出來的時間是 0.00021 ms，跟 Insertion Sort 完全一樣；而當 $n$ 變大後，它的時間就完全同步到 Heap Sort 的時間。這代表我的交叉點判斷邏輯正確，成功讓它在不同數據量下都去挑選最快的演算法來跑。
+    最壞情況分析：在最壞情況下，當 $n$ 超過 500 之後，Insertion Sort 的時間直接爆炸，呈現很明顯的 $O(n^2)$ 拋物線上升。
+    而使用三數取中的 Quick Sort、迭代版 Merge Sort 還有 Heap Sort 則維持在很平緩的 $O(n \log n)$ 曲線。其中 Heap Sort 
+    的最壞情況表現稍微優於其他兩者。
+    複合排序驗證：在 $n=20$ 時，Composite 跑出來的時間是 0.00021 ms，跟 Insertion Sort 完全一樣；而當 $n$ 變大後，
+    它的時間就完全同步到 Heap Sort 的時間。這代表我的交叉點判斷邏輯正確，成功讓它在不同數據量下都去挑選最快的演算法來跑。
 ## 效能分析
 
 ### 時間複雜度
