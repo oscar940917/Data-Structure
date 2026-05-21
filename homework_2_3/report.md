@@ -29,7 +29,7 @@
     從理論和實測圖表可以發現，當 $n$ 极小的時候，Insertion Sort 因為沒有遞迴開銷或額外的記憶體搬移，跑得比所有 $O(n \log n)$ 的演算法都要快。所以我在複合排序裡設定一個黃金交叉點 CROSSOVER_N = 25。當 $n \le 25$ 時直接用 Insertion Sort，一旦超過這個規模，就切換到最壞情況表現最穩定的 Heap Sort。
 ## 程式實作
 
-1. MinHeap 實作 (含測試)
+1. MaxHeap (最大堆積) 與 Heapify 實作
 ```cpp
 #include <iostream>
 #include <cmath>
