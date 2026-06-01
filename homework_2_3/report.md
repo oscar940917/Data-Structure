@@ -17,7 +17,7 @@
 
 ---
 
-## 解題說明與設計細節
+## 解題說明
 
 ### 1. 計時器精確度缺陷處理（Clock Accuracy & Timer Optimization）
 根據硬體環境測試，系統高解析度計時器（`chrono::high_resolution_clock`）的精度基準（Delta）可達 1 奈秒（ns）。然而，當數據量 $n$ 較小（如 20、50、100）時，單次排序執行時間極短，易產生較大之相對誤差。為使時間準確度維持在 **1% 以內**，本實驗設計了動態重複計時機制：
@@ -43,12 +43,8 @@
 
 ## 程式實作
 
-<<<<<<< HEAD
 以下為完整之 C++ 實驗原始碼，包含四種排序法、測資生成器、高解析度計時器以及主控制流程：
 
-=======
-1. MaxHeap (最大堆積) 與 Heapify 實作
->>>>>>> bb26ba756c2421130cea771f0578a4e8c609bf30
 ```cpp
 #include <iostream>
 #include <cmath>
@@ -233,12 +229,8 @@ const int CROSSOVER_N = 25;
 // 5. Composite Sort 實作
 void CompositeSort(int *a, int n) {
     if (n <= CROSSOVER_N) {
-        // 小規模數據採用常數開銷極低的插入排序
-        void InsertionSort(int *a, int n);
         InsertionSort(a, n);
     } else {
-        // 大規模數據採用最壞情況下最穩定的堆積排序
-        void HeapSort(int *a, int n);
         HeapSort(a, n);
     }
 }
