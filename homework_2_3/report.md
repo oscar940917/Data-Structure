@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 # 學號：41343129、41343131
 
 # 作業三：四種基礎與進階排序法效能實測與複合排序開發
@@ -41,8 +42,12 @@
 
 ## 程式實作
 
+<<<<<<< HEAD
 以下為完整之 C++ 實驗原始碼，包含四種排序法、測資生成器、高解析度計時器以及主控制流程：
 
+=======
+1. MaxHeap (最大堆積) 與 Heapify 實作
+>>>>>>> bb26ba756c2421130cea771f0578a4e8c609bf30
 ```cpp
 #include <iostream>
 #include <cmath>
@@ -397,8 +402,11 @@ n,Insertion_Avg,Quick_Avg,Merge_Avg,Heap_Avg
 ```
 測試說明
 
-    最壞情況分析：在最壞情況下，當 $n$ 超過 500 之後，Insertion Sort 的時間直接爆炸，呈現很明顯的 $O(n^2)$ 拋物線上升。而使用三數取中的 Quick Sort、迭代版 Merge Sort 還有 Heap Sort 則維持在很平緩的 $O(n \log n)$ 曲線。其中 Heap Sort 的最壞情況表現稍微優於其他兩者。
-    複合排序驗證：在 $n=20$ 時，Composite 跑出來的時間是 0.00021 ms，跟 Insertion Sort 完全一樣；而當 $n$ 變大後，它的時間就完全同步到 Heap Sort 的時間。這代表我的交叉點判斷邏輯正確，成功讓它在不同數據量下都去挑選最快的演算法來跑。
+    最壞情況分析：在最壞情況下，當 $n$ 超過 500 之後，Insertion Sort 的時間直接爆炸，呈現很明顯的 $O(n^2)$ 拋物線上升。
+    而使用三數取中的 Quick Sort、迭代版 Merge Sort 還有 Heap Sort 則維持在很平緩的 $O(n \log n)$ 曲線。其中 Heap Sort 
+    的最壞情況表現稍微優於其他兩者。
+    複合排序驗證：在 $n=20$ 時，Composite 跑出來的時間是 0.00021 ms，跟 Insertion Sort 完全一樣；而當 $n$ 變大後，
+    它的時間就完全同步到 Heap Sort 的時間。這代表我的交叉點判斷邏輯正確，成功讓它在不同數據量下都去挑選最快的演算法來跑。
 ## 效能分析
 
 ### 時間複雜度
@@ -409,8 +417,8 @@ n,Insertion_Avg,Quick_Avg,Merge_Avg,Heap_Avg
 | Insertion Sort      | $O(n^2)$     | $O(n^2)$ | $n$ 大時超慢。但在小數據量時常數項極低，表現最優。       |
 | Quick Sort (M3)    | $O(n^2)$ | $O(n \log n)$ | 用了三數取中法後，隨機排列遇到最壞狀況的機率變極低。        |
 | Merge Sort (Iter)   | $O(n \log n)$    | $O(n \log n)$ | 迭代版省去了遞迴的空間開銷，但還是需要 $O(n)$ 輔助空間。        |
-| Heap Sort | Push       | $O(n \log n)$ | $O(n \log n)$   | 最壞情況下最穩定的演算法，常數項比迭代 Merge 稍小。|
-| Composite Sort | Pop        | $O(n \log n)$ | $O(n \log n)$ | 截長補短。小數據用插入，大數據用堆積，兼顧動態最佳效能。|
+| Heap Sort | $O(n \log n)$ | $O(n \log n)$   | 最壞情況下最穩定的演算法，常數項比迭代 Merge 稍小。|
+| Composite Sort | $O(n \log n)$ | $O(n \log n)$ | 截長補短。小數據用插入，大數據用堆積，兼顧動態最佳效能。|
 
 
 
