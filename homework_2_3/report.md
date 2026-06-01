@@ -1,34 +1,48 @@
-# 41343129 41343131
+# 學號：41343129、41343131
 
-作業三
-# Problem : 四種基礎與進階排序法效能實測與複合排序開發
+# 作業三：四種基礎與進階排序法效能實測與複合排序開發
+
 ## 題目說明
+本實驗主要目標為透過 C++ 程式實作，測量並分析不同排序演算法在「最壞情況（Worst-case）」與「平均情況（Average-case）」下的時間效能。
 
-作業說明:
+實驗涵蓋以下四種排序方法：
+1. **Insertion Sort（插入排序）**
+2. **Quick Sort（快速排序）**：採用三數取中法（Median-of-three）選取 Pivot。
+3. **Merge Sort（合併排序）**：採用非遞迴的迭代版（Iterative）實作。
+4. **Heap Sort（堆積排序）**
 
-這次作業的主要目標是透過實際撰寫 C++ 程式，來測量與分析不同排序演算法在「最壞情況（Worst-case）」以及「平均情況（Average-case）」下的時間效能。
-主要涵蓋以下四種排序方法：
-    1.Insertion Sort（插入排序）
-    2.Quick Sort（快速排序）：特別規定要用三數取中法（Median-of-three）來選 pivot。
-    3.Merge Sort（合併排序）：特別規定要用非遞迴的迭代版（Iterative）來實作。
-    4.Heap Sort（堆積排序）
-    最後要根據實測出來的數據，找出它們在不同數據量 $n$ 下的效能交叉點，並寫出一個在任何數據規模下都能自動調用最快演算法的「複合式排序函數（Composite Sort）」，並把所有結果繪製成統計圖表。
+最終任務是根據實測數據，找出各演算法在不同數據量 $n$ 下的效能交叉點，進而開發出一個在任何數據規模下皆能自動調用最佳演算法的「複合式排序函數（Composite Sort）」。
 
-## 解題說明
+---
 
-1. 計時器的精確度缺陷處理
-因為現在電腦跑太快，當數據量 $n$ 很小的時候（像 20、50、100），排序一下就結束了，如果直接用標準時間函式去抓，常常會抓到 0 毫秒（ms）。為了解決這個計時誤差，我寫的計時器在遇到小數據量時，會用一個 for 迴圈強迫它自動重複跑 500 ~ 5000 次，測出總時間後再除以重複次數，這樣平均下來的單次時間才能降到 1% 以內的誤差。
+## 解題說明與設計細節
 
-2. 最壞情況（Worst-case）測試資料的產生
-    1.Insertion Sort：最壞情況最簡單，直接給它一個完全逆序（由大到小）的數列。
-    2.Merge Sort：最壞情況比較麻煩，不能隨便給。我寫了一個 MergeWorstBackward 函數利用「逆向操作（Working backward）」的想法，把一個排好序的數列交錯拆解，故意讓它每次在合併時都要比對到最後一項，產生理論上最多的比較次數。
-    3.Quick Sort & Heap Sort：這兩個的最壞情況比較難直接用公式製造，所以照題目規定，對同一個 $n$ 產生 15 組隨機排列（Permutation），各跑一次計時，並取裡面「花費時間最長（Max time）」的那一次來代表最壞情況。
+### 1. 計時器精確度缺陷處理（Clock Accuracy & Timer Optimization）
+根據硬體環境測試，系統高解析度計時器（`chrono::high_resolution_clock`）的精度基準（Delta）可達 1 奈秒（ns）。然而，當數據量 $n$ 較小（如 20、50、100）時，單次排序執行時間極短，易產生較大之相對誤差。為使時間準確度維持在 **1% 以內**，本實驗設計了動態重複計時機制：
+* 當 $n < 500$ 時，自動重複執行排序 5,000 次。
+* 當 $500 \le n < 2000$ 時，自動重複執行排序 500 次。
+* 最終總時間除以重複次數，以獲得精確之單次平均執行時間。
 
-3. 複合式排序（Composite Sort）的構想
-    從理論和實測圖表可以發現，當 $n$ 极小的時候，Insertion Sort 因為沒有遞迴開銷或額外的記憶體搬移，跑得比所有 $O(n \log n)$ 的演算法都要快。所以我在複合排序裡設定一個黃金交叉點 CROSSOVER_N = 25。當 $n \le 25$ 時直接用 Insertion Sort，一旦超過這個規模，就切換到最壞情況表現最穩定的 Heap Sort。
+### 2. 最壞情況（Worst-case）測試資料的產生
+* **Insertion Sort**：直接生成完全逆序（由大到小）的數列，此時每筆資料皆需與前面所有元素比對，達到最大比較次數。
+* **Merge Sort**：採用「逆向操作（Working backward）」演算法。從最終合併完成的狀態出發，交錯拆解陣列，刻意製造出每次合併（Merge）時，左右子陣列的元素都必須比對到最後一項的最壞情況。
+* **Quick Sort & Heap Sort**：此二種演算法的最壞情況較難直接透過公式精準逆推。依據題目規範，本實驗針對同一規模 $n$，隨機生成 **15 組不同的隨機排列（Permutation）**，各執行一次計時，並取其「最大花費時間（Max time）」作為最壞情況的觀測近似值（隨機洗牌次數皆嚴格遵守題目大於 10 次之規定）。
+
+### 3. 記憶體開銷優化（Overhead Reduction）
+在迭代版 Merge Sort 中，若在最內層合併迴圈頻繁配置與釋放記憶體（`new` / `delete`），將導致作業系統之記憶體管理開銷超越演算法本身的計算時間。為此，本程式進行了優化改寫：**在排序函數初始階段僅動態配置一塊大小為 $n$ 的全局輔助陣列空間**，並在後續各層級的合併中重複迭代使用，有效去除系統雜訊。
+
+### 4. 複合式排序（Composite Sort）之構想與黃金交叉點
+理論與實測數據皆顯示，在極小數據量下，Insertion Sort 因不具備遞迴堆疊、額外記憶體搬移或樹狀結構調整之開銷，其常數項（Overhead）極小，效能超越所有 $O(n \log n)$ 的演算法。
+經實驗窄範圍微調驗證，本實驗將黃金交叉點設定為 `CROSSOVER_N = 25`：
+* 當 $n \le 25$ 時：調用 **Insertion Sort**。
+* 當 $n > 25$ 時：切換至最壞情況下表現最為穩定的 **Heap Sort**。
+
+---
+
 ## 程式實作
 
-1. MinHeap 實作 (含測試)
+以下為完整之 C++ 實驗原始碼，包含四種排序法、測資生成器、高解析度計時器以及主控制流程：
+
 ```cpp
 #include <iostream>
 #include <cmath>
@@ -40,6 +54,7 @@
 
 using namespace std;
 
+// 驗證陣列是否正確排序（由小到大）
 bool IsSorted(const int *a, int n) {
     for (int i = 0; i < n - 1; i++) {
         if (a[i] > a[i + 1]) return false;
@@ -47,16 +62,19 @@ bool IsSorted(const int *a, int n) {
     return true;
 }
 
+// 陣列複製函數
 void CopyArray(const int *src, int *dst, int n) {
     for (int i = 0; i < n; i++) dst[i] = src[i];
 }
 
+// 產生 Insertion Sort 最壞情況資料（逆序）
 void GenerateInsertionWorst(int *a, int n) {
     for (int i = 0; i < n; i++) {
         a[i] = n - i;
     }
 }
 
+// 隨機排列洗牌產生器（遵循 Fisher-Yates 演算法精神修正 0-based index）
 void Permute(int *a, int n) {
     for (int i = n - 1; i >= 1; i--) {
         int j = rand() % (i + 1);
@@ -64,6 +82,7 @@ void Permute(int *a, int n) {
     }
 }
 
+// Merge Sort 最壞情況逆向推導核心
 void MergeWorstBackward(int *a, int *temp, int left, int right) {
     if (left >= right) return;
     if (right - left == 1) {
@@ -89,6 +108,7 @@ void MergeWorstBackward(int *a, int *temp, int left, int right) {
     MergeWorstBackward(a, temp, mid + 1, right);
 }
 
+// 產生 Merge Sort 最壞情況資料
 void GenerateMergeWorst(int *a, int n) {
     for (int i = 0; i < n; i++) a[i] = i + 1;
     int *temp = new int[n];
@@ -96,6 +116,7 @@ void GenerateMergeWorst(int *a, int n) {
     delete[] temp;
 }
 
+// 1. Insertion Sort 實作
 void InsertionSort(int *a, int n) {
     for (int i = 1; i < n; i++) {
         int key = a[i];
@@ -108,19 +129,21 @@ void InsertionSort(int *a, int n) {
     }
 }
 
+// Quick Sort 三數取中法選 Pivot
 int MedianOfThree(int *a, int low, int high) {
     int mid = low + (high - low) / 2;
     if (a[low] > a[mid]) swap(a[low], a[mid]);
     if (a[low] > a[high]) swap(a[low], a[high]);
     if (a[mid] > a[high]) swap(a[mid], a[high]);
-    return mid;
+    return mid; // 回傳中間值的索引
 }
 
+// Quick Sort 遞迴核心（採用 Lomuto 劃分架構）
 void QuickSortRecursive(int *a, int low, int high) {
     if (low < high) {
         int pivotIdx = MedianOfThree(a, low, high);
         int pivot = a[pivotIdx];
-        swap(a[pivotIdx], a[high]);
+        swap(a[pivotIdx], a[high]); // 將 Pivot 藏至尾端
         
         int i = low - 1;
         for (int j = low; j < high; j++) {
@@ -129,7 +152,7 @@ void QuickSortRecursive(int *a, int low, int high) {
                 swap(a[i], a[j]);
             }
         }
-        swap(a[i + 1], a[high]);
+        swap(a[i + 1], a[high]); // 把 Pivot 放回正確分割點
         int p = i + 1;
 
         QuickSortRecursive(a, low, p - 1);
@@ -137,44 +160,44 @@ void QuickSortRecursive(int *a, int low, int high) {
     }
 }
 
+// 2. Quick Sort 外部調用介面
 void QuickSort(int *a, int n) {
     QuickSortRecursive(a, 0, n - 1);
 }
 
-void Merge(int *a, int *l, int leftCount, int *r, int rightCount) {
-    int i = 0, j = 0, k = 0;
-    while (i < leftCount && j < rightCount) {
-        if (l[i] < r[j]) a[k++] = l[i++];
-        else a[k++] = r[j++];
+// Merge Sort 合併雙子陣列（內部優化版：不重複 new 空間）
+void Merge(int *a, int left_start, int mid, int right_end, int *temp) {
+    int i = left_start;
+    int j = mid + 1;
+    int k = left_start;
+
+    while (i <= mid && j <= right_end) {
+        if (a[i] <= a[j]) temp[k++] = a[i++];
+        else temp[k++] = a[j++];
     }
-    while (i < leftCount) a[k++] = l[i++];
-    while (j < rightCount) a[k++] = r[j++];
+    while (i <= mid) temp[k++] = a[i++];
+    while (j <= right_end) temp[k++] = a[j++];
+
+    for (i = left_start; i <= right_end; i++) {
+        a[i] = temp[i];
+    }
 }
 
+// 3. Iterative Merge Sort 實作 (已移除內層迴圈 new/delete 以優化效能)
 void IterativeMergeSort(int *a, int n) {
     if (n < 2) return;
+    int *temp = new int[n]; // 在最外層配置單一輔助空間
     for (int curr_size = 1; curr_size <= n - 1; curr_size = 2 * curr_size) {
         for (int left_start = 0; left_start < n - 1; left_start += 2 * curr_size) {
             int mid = min(left_start + curr_size - 1, n - 1);
             int right_end = min(left_start + 2 * curr_size - 1, n - 1);
-            
-            int leftCount = mid - left_start + 1;
-            int rightCount = right_end - mid;
-            
-            int *L = new int[leftCount];
-            int *R = new int[rightCount];
-            
-            for (int i = 0; i < leftCount; i++) L[i] = a[left_start + i];
-            for (int i = 0; i < rightCount; i++) R[i] = a[mid + 1 + i];
-            
-            Merge(a + left_start, L, leftCount, R, rightCount);
-            
-            delete[] L;
-            delete[] R;
+            Merge(a, left_start, mid, right_end, temp);
         }
     }
+    delete[] temp;
 }
 
+// Heap Sort 的 MaxHeap 下沉調整函數
 void Heapify(int *a, int n, int i) {
     int largest = i;
     int left = 2 * i + 1;
@@ -189,6 +212,7 @@ void Heapify(int *a, int n, int i) {
     }
 }
 
+// 4. Heap Sort 實作 (由小到大排序需採用 MaxHeap)
 void HeapSort(int *a, int n) {
     for (int i = n / 2 - 1; i >= 0; i--) Heapify(a, n, i);
     for (int i = n - 1; i > 0; i--) {
@@ -197,16 +221,23 @@ void HeapSort(int *a, int n) {
     }
 }
 
+// 複合排序之黃金交叉點閾值
 const int CROSSOVER_N = 25; 
 
+// 5. Composite Sort 實作
 void CompositeSort(int *a, int n) {
     if (n <= CROSSOVER_N) {
+        // 小規模數據採用常數開銷極低的插入排序
+        void InsertionSort(int *a, int n);
         InsertionSort(a, n);
     } else {
+        // 大規模數據採用最壞情況下最穩定的堆積排序
+        void HeapSort(int *a, int n);
         HeapSort(a, n);
     }
 }
 
+// 實驗計時器框架（處理小測資重複曝光優化）
 double TimeExperiment(void (*sortFunc)(int*, int), int *data, int n, int min_repeats = 1) {
     int *test_array = new int[n];
     int repeats = min_repeats;
@@ -222,24 +253,26 @@ double TimeExperiment(void (*sortFunc)(int*, int), int *data, int n, int min_rep
     auto end = chrono::high_resolution_clock::now();
     
     if (!IsSorted(test_array, n)) {
-        cout << "\n[ERROR]" << endl;
+        cout << "\n[ERROR] Sorting Failed!" << endl;
     }
 
     delete[] test_array;
     chrono::duration<double, nano> elapsed = end - start;
-    return (elapsed.count() / repeats) / 1000000.0;
+    return (elapsed.count() / repeats) / 1000000.0; // 轉換為毫秒 (ms)
 }
 
 int main() {
-    srand(2026);
+    srand(2026); // 設定固定隨機種子以利實驗重現
     
     auto t_res = chrono::high_resolution_clock::period::num / (double)chrono::high_resolution_clock::period::den;
-    cout << "Delta: " << t_res * 1e9 << " ns\n\n";
+    cout << "計時器精度基準 Delta: " << t_res * 1e9 << " ns\n\n";
 
     int target_n[] = {20, 50, 100, 500, 1000, 2000, 3000, 4000, 5000};
     int num_sizes = sizeof(target_n) / sizeof(target_n[0]);
     const int RANDOM_PERMUTATIONS = 15;
 
+    // ================= 最壞情況實驗流程 =================
+    cout << "=== 1. Worst-Case 實測數據 (單位: ms) ===" << endl;
     cout << "n,Insertion,Quick(M3),Merge(Iter),Heap,Composite" << endl;
 
     for (int idx = 0; idx < num_sizes; idx++) {
@@ -257,6 +290,7 @@ int main() {
         double t_qck_max = 0.0;
         double t_hea_max = 0.0;
         
+        // 隨機洗牌 15 次，抓取最大值作為最壞情況近似值
         for (int p = 0; p < RANDOM_PERMUTATIONS; p++) {
             for (int i = 0; i < n; i++) rand_data[i] = i + 1;
             Permute(rand_data, n);
@@ -282,7 +316,9 @@ int main() {
         delete[] rand_data;
     }
 
-    cout << "\nn,Insertion_Avg,Quick_Avg,Merge_Avg,Heap_Avg" << endl;
+    // ================= 平均情況實驗流程 =================
+    cout << "\n=== 2. Average-Case 實測數據 (單位: ms) ===" << endl;
+    cout << "n,Insertion_Avg,Quick_Avg,Merge_Avg,Heap_Avg" << endl;
 
     for (int idx = 0; idx < num_sizes; idx++) {
         int n = target_n[idx];
@@ -290,7 +326,7 @@ int main() {
         int *test_array = new int[n];
         
         double total_ins = 0, total_qck = 0, total_mrg = 0, total_hea = 0;
-        const int AVG_TRIALS = 30;
+        const int AVG_TRIALS = 30; // 遵循題目規範，採用 30 組獨立不同的隨機排列
 
         for (int t = 0; t < AVG_TRIALS; t++) {
             for (int i = 0; i < n; i++) rand_data[i] = i + 1;
