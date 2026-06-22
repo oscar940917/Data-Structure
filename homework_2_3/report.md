@@ -1,47 +1,60 @@
-# 41343129 
+# 41343129
 
 # 41343131
 
 # 作業三：Sorting Project
 
 ## 題目說明
+
 本實驗主要目標為透過 C++ 程式實作，測量並分析不同排序演算法在「最壞情況（Worst-case）」與「平均情況（Average-case）」下的時間效能。
 
-實驗涵蓋以下四種排序方法：
+實驗涵蓋以下四種標準排序方法及一種複合式排序方法：
+
 1. **Insertion Sort（插入排序）**
 2. **Quick Sort（快速排序）**：採用三數取中法（Median-of-three）選取 Pivot。
 3. **Merge Sort（合併排序）**：採用非遞迴的迭代版（Iterative）實作。
 4. **Heap Sort（堆積排序）**
+5. **yyySort (複合式)** : 同時結合多種排序以提高效率。
 
 最終任務是根據實測數據，找出各演算法在不同數據量 $n$ 下的效能交叉點，進而開發出一個在任何數據規模下皆能自動調用最佳演算法的「複合式排序函數（Composite Sort）」。
+
+在撰寫複合式演算法的過程中當然不會考慮Bogo、Thanos或Miraacle(奇蹟排序)、，因為那些完全是基於機率性的。
 
 ---
 
 ## 解題說明
 
 ### 1. 計時器精確度缺陷處理（Clock Accuracy & Timer Optimization）
+
 根據硬體環境測試，系統高解析度計時器（`chrono::high_resolution_clock`）的精度基準（Delta）可達 1 奈秒（ns）。然而，當數據量 $n$ 較小（如 20、50、100）時，單次排序執行時間極短，易產生較大之相對誤差。為使時間準確度維持在 **1% 以內**，本實驗設計了動態重複計時機制：
+
 * 當 $n < 500$ 時，自動重複執行排序 5,000 次。
 * 當 $500 \le n < 2000$ 時，自動重複執行排序 500 次。
 * 最終總時間除以重複次數，以獲得精確之單次平均執行時間。
 
 ### 2. 最壞情況（Worst-case）測試資料的產生
+
 * **Insertion Sort**：直接生成完全逆序（由大到小）的數列，此時每筆資料皆需與前面所有元素比對，達到最大比較次數。
 * **Merge Sort**：採用「逆向操作（Working backward）」演算法。從最終合併完成的狀態出發，交錯拆解陣列，刻意製造出每次合併（Merge）時，左右子陣列的元素都必須比對到最後一項的最壞情況。
 * **Quick Sort & Heap Sort**：此二種演算法的最壞情況較難直接透過公式精準逆推。依據題目規範，本實驗針對同一規模 $n$，隨機生成 **15 組不同的隨機排列（Permutation）**，各執行一次計時，並取其「最大花費時間（Max time）」作為最壞情況的觀測近似值（隨機洗牌次數皆嚴格遵守題目大於 10 次之規定）。
 
 ### 3. 記憶體開銷優化（Overhead Reduction）
+
 在迭代版 Merge Sort 中，若在最內層合併迴圈頻繁配置與釋放記憶體（`new` / `delete`），將導致作業系統之記憶體管理開銷超越演算法本身的計算時間。為此，本程式進行了優化改寫：**在排序函數初始階段僅動態配置一塊大小為 $n$ 的全局輔助陣列空間**，並在後續各層級的合併中重複迭代使用，有效去除系統雜訊。
 
 ### 4. 複合式排序（Composite Sort）之構想與黃金交叉點
+
 理論與實測數據皆顯示，在極小數據量下，Insertion Sort 因不具備遞迴堆疊、額外記憶體搬移或樹狀結構調整之開銷，其常數項（Overhead）極小，效能超越所有 $O(n \log n)$ 的演算法。
 經實驗窄範圍微調驗證，本實驗將黃金交叉點設定為 `CROSSOVER_N = 25`：
+
 * 當 $n \le 25$ 時：調用 **Insertion Sort**。
 * 當 $n > 25$ 時：切換至最壞情況下表現最為穩定的 **Heap Sort**。
 
 ---
 
 ## 程式實作
+
+### 主要程式
 
 以下為完整之 C++ 實驗原始碼，包含四種排序法、測資生成器、高解析度計時器以及主控制流程：
 
@@ -364,8 +377,115 @@ int main() {
     return 0;
 }
 ```
+
+### 複合式
+
+在設計複合式排序法的部分，我原本計畫結合史達林排序與車廂去做動態排序，後來因為too lazy所以用常見的方法複合使用之。
+
+```h
+#ifndef y_sort
+#define y_sort
+#include <cmath>
+#include <vector>
+#include <algorithm>
+#include <climits>
+
+namespace ySort {
+
+/**
+ * Counting Sort
+ * @param arr int* ORG array
+ * @param n   int size
+ * @param min int min
+ * @param max int max
+ * @warning Unstable Sorting; rebuilt all objects
+ */
+void sort_counting(int* arr, int n, int min, int max);
+
+/**
+ * Complex Sort
+ * @param arr int* ORG array
+ * @param n   int size
+ */
+void sort_yyy(int* arr, int n);
+
+};
+
+#endif
+
+```
+
+```cpp
+#include "y_sort.h"
+#define LL long long
+
+void ySort::sort_counting(int* arr, int n, int min, int max) {
+    std::vector<int> tv(max-min + 1, 0);   // {0}
+    for(int i = 0; i < n; ++i)
+        ++tv[arr[i]-min];
+
+    for(int i = 0, ai = 0; i < tv.size(); ++i) {
+        while (tv[i] > 0) {
+            arr[ai] = i + min;
+            --tv[i]; ++ai;
+        }
+    }
+};
+
+
+void ySort::sort_yyy(int* arr, int n) {
+    if (!n) return;
+    
+    // check whether do a quickly
+    if (n <= 32) {
+        std::sort(arr, arr + n);
+        return;
+    }
+
+    // analysis             // O(n)
+    int min = INT_MAX, max = INT_MIN;
+    bool is_decreasing = true, is_increasing = true;
+    if (arr[0] < min) min = arr[0];
+    if (arr[0] > max) max = arr[0];
+    for (int i = 1; i < n; ++i) {
+        if (arr[i] < min) min = arr[i];
+        if (arr[i] > max) max = arr[i];
+        if (arr[i-1] > arr[i]) is_increasing = false;   // should a < b
+        if (arr[i-1] < arr[i]) is_decreasing = false;   // should a > b
+
+        // mis < k => use merge #TODO
+    }
+
+    if (is_increasing) return;
+    if (is_decreasing) {
+        std::reverse(arr, arr+n);
+        return;
+    }
+
+
+    // Counting Sort
+    if ((LL)max - min < n) {
+        ySort::sort_counting(arr, n, min, max);
+        return;
+    }
+
+    // Stalin + Cart Sort
+    // #TODO
+    /// if
+
+    // heap sort byt STD
+    std::make_heap(arr, arr + n);
+    std::sort_heap(arr, arr + n);
+    // , std::greater<int>()
+};
+```
+
+---
+
 ## 測試與驗證
+
 1. 最壞情況 (Worst-Case) 實測數據 (單位: 毫秒 ms)
+
 ```text
 Delta: 1 ns
 
@@ -380,7 +500,9 @@ n,Insertion,Quick(M3),Merge(Iter),Heap,Composite
 4000,7.12000,0.46100,0.44900,0.33900,0.33850
 5000,11.15000,0.61200,0.59100,0.44200,0.44100
 ```
+
 2. 平均情況 (Average-Case) 實測數據 (單位: 毫秒 ms)
+
 ```text
 n,Insertion_Avg,Quick_Avg,Merge_Avg,Heap_Avg
 20,0.00012,0.00042,0.00098,0.00078
@@ -393,48 +515,71 @@ n,Insertion_Avg,Quick_Avg,Merge_Avg,Heap_Avg
 4000,3.41500,0.21100,0.39800,0.31000
 5000,5.32000,0.27800,0.51200,0.40100
 ```
-測試說明
 
-    最壞情況分析：在最壞情況下，當 $n$ 超過 500 之後，Insertion Sort 的時間直接爆炸，呈現很明顯的 $O(n^2)$ 拋物線上升。
-    而使用三數取中的 Quick Sort、迭代版 Merge Sort 還有 Heap Sort 則維持在很平緩的 $O(n \log n)$ 曲線。其中 Heap Sort 
-    的最壞情況表現稍微優於其他兩者。
-    複合排序驗證：在 $n=20$ 時，Composite 跑出來的時間是 0.00021 ms，跟 Insertion Sort 完全一樣；而當 $n$ 變大後，
-    它的時間就完全同步到 Heap Sort 的時間。這代表我的交叉點判斷邏輯正確，成功讓它在不同數據量下都去挑選最快的演算法來跑。
+3. yyySort複合式
+
+| 觸發類型 | 數量 | 範圍 | 時間 | 驗證 |
+| :--- | :--- | :--- | :--- | :--- |
+| [Counting] | n=10000 | Range=[0,5000] | Time: 0.270327ms | OK |
+| [Heap] | n=10000 | Range=[0,1000000] | Time: 2.307405ms | OK |
+| [Small] | n=20 | Range=[0,1000] | Time: 0.003468ms | OK |
+| [Large] | n=500000 | Range=[0,100000000] | Time: 173.307656ms | OK |
+| | | | | |
+| [Counting] | n=10000 | Range=[0,5000] | Time: 0.334825ms | OK |
+| [Heap] | n=10000 | Range=[0,1000000] | Time: 2.463078ms | OK |
+| [Small] | n=20 | Range=[0,1000] | Time: 0.003516ms | OK |
+| [Large] | n=500000 | Range=[0,100000000] | Time: 160.805484ms | OK |
+| | | | | |
+| [Counting] | n=10000 | Range=[0,5000] | Time: 0.295165ms | OK |
+| [Heap] | n=10000 | Range=[0,1000000] | Time: 2.171962ms | OK |
+| [Small] | n=20 | Range=[0,1000] | Time: 0.002648ms | OK |
+| [Large] | n=500000 | Range=[0,100000000] | Time: 148.048468ms | OK |
+
+---
+
+### 測試說明
+
+最壞情況分析：在最壞情況下，當 $n$ 超過 500 之後，Insertion Sort 的時間直接爆炸，呈現很明顯的 $O(n^2)$ 拋物線上升。
+而使用三數取中的 Quick Sort、迭代版 Merge Sort 還有 Heap Sort 則維持在很平緩的 $O(n \log n)$ 曲線。其中 Heap Sort
+的最壞情況表現稍微優於其他兩者。
+複合排序驗證：在 $n=20$ 時，Composite 跑出來的時間是 0.00021 ms，跟 Insertion Sort 完全一樣；而當 $n$ 變大後，
+它的時間就完全同步到 Heap Sort 的時間。這代表我的交叉點判斷邏輯正確，成功讓它在不同數據量下都去挑選最快的演算法來跑。
+`yyySort`測試了三組，每組內分別觸發內部不同策略。
+
 ## 效能分析
 
 ### 時間複雜度
 
-    
-| 功能 / 演算法      | 最壞時間複雜度         | 平均時間複雜度    | 實驗觀測與說明          |
-| ------- | ---------- | -------- | ----------- |
-| Insertion Sort      | $O(n^2)$     | $O(n^2)$ | $n$ 大時超慢。但在小數據量時常數項極低，表現最優。       |
-| Quick Sort (M3)    | $O(n^2)$ | $O(n \log n)$ | 用了三數取中法後，隨機排列遇到最壞狀況的機率變極低。        |
-| Merge Sort (Iter)   | $O(n \log n)$    | $O(n \log n)$ | 迭代版省去了遞迴的空間開銷，但還是需要 $O(n)$ 輔助空間。        |
-| Heap Sort | $O(n \log n)$ | $O(n \log n)$   | 最壞情況下最穩定的演算法，常數項比迭代 Merge 稍小。|
-| Composite Sort | $O(n \log n)$ | $O(n \log n)$ | 截長補短。小數據用插入，大數據用堆積，兼顧動態最佳效能。|
-
-
-
-
+| 功能 / 演算法 | 最壞時間複雜度 | 平均時間複雜度 | 實驗觀測與說明 |
+| :--- | :--- | :--- | :--- |
+| Insertion Sort | $O(n^2)$ | $O(n^2)$ | $n$ 大時超慢。但在小數據量時常數項極低，表現最優。 |
+| Quick Sort (M3) | $O(n^2)$ | $O(n \log n)$ | 用了三數取中法後，隨機排列遇到最壞狀況的機率變極低。 |
+| Merge Sort (Iter) | $O(n \log n)$ | $O(n \log n)$ | 迭代版省去了遞迴的空間開銷，但還是需要 $O(n)$ 輔助空間。 |
+| Heap Sort | $O(n \log n)$ | $O(n \log n)$ | 最壞情況下最穩定的演算法，常數項比迭代 Merge 稍小。 |
+| Composite Sort | $O(n \log n)$ | $O(n \log n)$ | 截長補短。小數據用插入，大數據用堆積，兼顧動態最佳效能。 |
+| yyySort | $O(n \log(n))$ | $O(n \log(n))$ | 最佳 $O(n)$。 |
 
 ### 空間複雜度
 
-| 演算法  | 空間複雜度 | 說明   |
-| ------- | ---------- | -------- |
+| 演算法 | 空間複雜度 | 說明 |
+| :--- | :--- | :--- |
 | Insertion Sort | $O(1)$ | 原地排序（In-place），不需要任何額外陣列空間。 |
-| Quick Sort | $O(\log n)$  | 主要是遞迴呼叫時佔用系統的堆疊（Stack）空間。 |
-| Merge Sort (Iter)  | $O(n)$  | 雖然用迭代改寫，但動態配置 L 與 R 陣列做合併時依然需要額外空間。 |
-| Heap Sort  | $O(1)$  | 直接在原陣列內建立完全二元樹調整，空間開銷極省。 |
-
+| Quick Sort | $O(\log n)$ | 主要是遞迴呼叫時佔用系統的堆疊（Stack）空間。 |
+| Merge Sort (Iter) | $O(n)$ | 雖然用迭代改寫，但動態配置 L 與 R 陣列做合併時依然需要額外空間。 |
+| Heap Sort | $O(1)$ | 直接在原陣列內建立完全二元樹調整，空間開銷極省。 |
+| yyySort | $O(1)$ ~ $O(Max(\log(n), R))$ | R為最小到最大的範圍值 |
 
 ## 申論及開發報告
-這次作業實測讓我對「時間複雜度」這堂課有了更具體的認識，以前都只是在紙上算 $O(n^2)$ 或 $O(n \log n)$，真的自己用 <chrono> 下去抓時間才發現常數項（Overhead）造成的巨大差異。特別是在寫 Merge Sort 最壞情況測資的時候卡超久，後來查資料發現必須用逆向工程，把一個排序好的陣列不斷交錯拆開，才能強迫 Iterative Merge Sort 每次都合併到最後一個元素。另外也發現，雖然課本常說 Quick Sort 平均最快，但在最壞情況的嚴苛條件下，Heap Sort 的原地操作和穩定的 $O(n \log n)$ 表現反而更亮眼。寫出 Composite Sort 並看到它的效能曲線完美貼合在所有演算法的最下層，非常有成就感。這讓我學到在實際開發專案時，不應該迷信單一的「最強演算法」，而是要根據實際的數據規模，動態去組合不同的方法來達到最優化。
+
+這次作業實測讓我對「時間複雜度」這堂課有了更具體的認識，以前都只是在紙上算 $O(n^2)$ 或 $O(n \log n)$，真的自己用 `<chrono>` 下去抓時間才發現常數項（Overhead）造成的巨大差異。特別是在寫 Merge Sort 最壞情況測資的時候卡超久，後來查資料發現必須用逆向工程，把一個排序好的陣列不斷交錯拆開，才能強迫 Iterative Merge Sort 每次都合併到最後一個元素。另外也發現，雖然課本常說 Quick Sort 平均最快，但在最壞情況的嚴苛條件下，Heap Sort 的原地操作和穩定的 $O(n \log n)$ 表現反而更亮眼。寫出 Composite Sort 並看到它的效能曲線完美貼合在所有演算法的最下層，非常有成就感。這讓我學到在實際開發專案時，不應該迷信單一的「最強演算法」，而是要根據實際的數據規模，動態去組合不同的方法來達到最優化。
+
+在`yyySort`內部的heap實作原本要使用`std::priority_queue`，突然發現有`std::make_heap`、`std::sort_heap`方法，可以更高效的直接針對原本的指標*陣列做操作，避免new/delete開銷。在 $O(n)$ 的分析中，可以加入錯誤率，累計不規則的數量，在少於一定值情況下可以直接使用MergeSort提高效率。
 
 ### 總結
-| 項目     | 說明                          |
-| ------ | --------------------------- |
-| 使用資料結構 | 動態陣列（指標操作）、完全二元樹（Heap） |
-| 使用語言   | C++ (採用 <chrono> 進行高解析度計時)|
-| 主要技巧   | 迭代法實作、三數取中、最壞情況測資反推、計時器防誤差優化|
-| 完成的功能  | 四種排序實作、最壞與平均效能實測、黃金交叉點分析、複合排序開發|
 
+| 項目 | 說明 |
+| :--- | :--- |
+| 使用資料結構 | 動態陣列（指標操作）、完全二元樹（Heap） |
+| 使用語言 | C++ (採用 `<chrono>` 進行高解析度計時) |
+| 主要技巧 | 迭代法實作、三數取中、最壞情況測資反推、計時器防誤差優化 |
+| 完成的功能 | 四種排序實作、最壞與平均效能實測、黃金交叉點分析、複合排序開發 |

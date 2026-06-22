@@ -19,6 +19,7 @@ bool IsSorted(const int *a, int n) {
 // 陣列複製函數
 void CopyArray(const int *src, int *dst, int n) {
     for (int i = 0; i < n; i++) dst[i] = src[i];
+    // try "std::copy" ? #TODO
 }
 
 // 產生 Insertion Sort 最壞情況資料（逆序）
@@ -151,6 +152,7 @@ void IterativeMergeSort(int *a, int n) {
     delete[] temp;
 }
 
+// try/think "std::priority_queue" ? (nlogn) #TODO
 // Heap Sort 的 MaxHeap 下沉調整函數
 void Heapify(int *a, int n, int i) {
     int largest = i;
@@ -176,7 +178,7 @@ void HeapSort(int *a, int n) {
 }
 
 // 複合排序之黃金交叉點閾值
-const int CROSSOVER_N = 25; 
+const int CROSSOVER_N = 25;
 
 // 5. Composite Sort 實作
 void CompositeSort(int *a, int n) {
@@ -319,3 +321,64 @@ int main() {
 
     return 0;
 }
+
+
+// yyySort Test:
+/*
+
+#include <iostream>
+#include <vector>
+#include <algorithm>
+#include <random>
+#include <chrono>
+#include "y_sort.h"
+
+using namespace std;
+
+bool Verify(const int* arr, int n) {
+    for (int i = 0; i < n - 1; ++i) {
+        if (arr[i] > arr[i+1]) return false;
+    }
+    return true;
+}
+
+void RunBenchmark(const string& label, int n, int min_val, int max_val) {
+    // **
+    // * @author @Gemini
+    // * /
+    vector<int> data(n);
+    mt19937 rng(1337);
+    uniform_int_distribution<int> dist(min_val, max_val);
+    for(int i = 0; i < n; ++i) data[i] = dist(rng);
+
+    auto start = chrono::high_resolution_clock::now();
+    ySort::sort_yyy(data.data(), data.size());
+    auto end = chrono::high_resolution_clock::now();
+
+    chrono::duration<double, milli> elapsed = end - start;
+    
+    cout << "| [" << label << "] | n=" << n 
+         << " | Range=[" << min_val << "," << max_val << "]"
+         << " | Time: " << fixed << elapsed.count() << "ms"
+         << (Verify(data.data(), n) ? " | OK" : " | FAILED") << " |" << endl;
+}
+
+int main() {
+    cout << "--- ySort::sort_yyy Benchmark ---" << endl;
+
+    // trigger Counting Sort
+    RunBenchmark("Counting", 10000, 0, 5000);
+
+    // triggered Heap Sort
+    RunBenchmark("Heap", 10000, 0, 1000000);
+
+    // triggered std::sort
+    RunBenchmark("Small", 20, 0, 1000);
+
+    // faaaa
+    RunBenchmark("Large", 500000, 0, 100000000);
+
+    return 0;
+}
+
+*/
